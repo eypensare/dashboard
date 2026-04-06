@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nyx Labs | Soft OS | Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --card-bg: rgba(15, 15, 20, 0.35);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f0f0f0;
+            --text-muted: #a0a0a0;
+            --accent: #00ffcc;
+            --accent-glow: rgba(0, 255, 204, 0.4);
+            --danger: #ff3366;
+            --success: #00e676;
+            --warning: #ffea00;
+            --bg-blur: 8px; /* Dinamik blur için değişken */
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 2rem;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* ARKA PLAN - DİNAMİK BLUR EFEKTİ */
+        .bg-image {
+            position: fixed;
+            top: -20px; left: -20px; right: -20px; bottom: -20px;
+            background-image: url('1.webp');
+            background-size: cover;
+            background-position: center;
+            filter: blur(var(--bg-blur)) brightness(0.4);
+            z-index: -1;
+            transition: filter 0.3s ease, background-image 0.5s ease;
+        }
+
+        /* Özel Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--card-border);
+            position: relative;
+            z-index: 10;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(90deg, #fff, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand p { margin: 5px 0 0 0; color: var(--success); font-size: 0.85rem; font-weight: 600; letter-spacing: 2px;}
+
+        .clock-widget { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+        .time { font-size: 2.5rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; text-shadow: 0 0 15px rgba(255,255,255,0.2); }
+        .date { color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;}
+        
+        .settings-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--card-border);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            backdrop-filter: blur(5px);
+        }
+        .settings-btn:hover { background: var(--accent); color: black; box-shadow: 0 0 15px var(--accent-glow); border-color: var(--accent); }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 1.5rem;
+            position: relative;
+            z-index: 10;
+            grid-auto-flow: dense; /* Boyutlandırmalarda boşlukları doldurmak için */
+        }
+
+        /* KART BOYUTLARI */
+        .size-normal { grid-column: span 1; }
+        .size-wide { grid-column: span 2; }
+        .size-full { grid-column: 1 / -1; }
+
+        @media (max-width: 768px) {
+            .size-wide { grid-column: span 1; }
+        }
+
+        /* GLASSMORPHISM KART TASARIMI */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s;
+            position: relative;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.6), 0 0 20px var(--accent-glow);
+            border-color: rgba(0, 255, 204, 0.3);
+        }
+
+        /* DÜZENLEME MODU (Sürükle-Bırak & Boyutlandırma) */
+        body.edit-mode .card {
+            cursor: grab;
+            border: 1px dashed var(--accent);
+        }
+        body.edit-mode .card:active { cursor: grabbing; }
+        body.edit-mode .card.dragging { opacity: 0.5; transform: scale(0.95); }
+        .edit-controls {
+            display: none;
+            position: absolute;
+            top: 10px; right: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 5px;
+            border-radius: 8px;
+            border: 1px solid var(--accent);
+            z-index: 20;
+            gap: 5px;
+        }
+        body.edit-mode .edit-controls { display: flex; align-items: center; }
+        .edit-controls select { padding: 2px 5px; font-size: 0.8rem; background: #000; border: 1px solid var(--card-border); color: white; border-radius: 4px; cursor: pointer;}
+        .edit-controls button { padding: 2px 5px; font-size: 0.8rem; background: var(--danger); border: none; color: white; border-radius: 4px; cursor: pointer;}
+
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; }
+        .card-title { margin: 0; font-size: 1.1rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Form Elemanları */
+        input, select, textarea {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-main);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+        
+        button {
+            background: var(--accent); color: #000; border: none; padding: 10px 16px; border-radius: 8px;
+            font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px;
+        }
+        button:hover { background: #fff; box-shadow: 0 0 15px var(--accent-glow); }
+        
+        .btn-danger { background: rgba(255, 51, 102, 0.1); color: var(--danger); border: 1px solid var(--danger); padding: 4px 8px; font-size: 0.8rem; border-radius: 4px;}
+        .btn-danger:hover { background: var(--danger); color: #fff; box-shadow: 0 0 10px rgba(255,51,102,0.5);}
+
+        .add-form { display: flex; gap: 8px; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--card-border); }
+
+        /* Timer, Listeler ve Linkler */
+        .lgs-timer { font-size: 3rem; font-weight: 800; text-align: center; color: var(--text-main); text-shadow: 0 0 20px rgba(255, 255, 255, 0.2); font-variant-numeric: tabular-nums; letter-spacing: 2px; margin: 10px 0; }
+        .lgs-labels { display: flex; justify-content: center; gap: 2.5rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
+        .list-container { display: flex; flex-direction: column; gap: 10px; flex-grow: 1; overflow-y: auto; max-height: 250px; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 12px 15px; border-radius: 8px; border-left: 3px solid var(--card-border); transition: all 0.2s; }
+        .list-item:hover { background: rgba(255,255,255,0.08); }
+        .link-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; flex-grow: 1; }
+        .link-card { background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); padding: 12px; border-radius: 8px; text-decoration: none; color: var(--text-main); display: flex; flex-direction: column; gap: 5px; transition: all 0.2s; position: relative; }
+        .link-card:hover { border-color: var(--accent); background: rgba(0, 255, 204, 0.05); }
+        .link-card .delete-icon { position: absolute; top: 5px; right: 5px; color: var(--text-muted); font-size: 12px; cursor: pointer; padding: 2px 5px; }
+        .link-card .delete-icon:hover { color: var(--danger); }
+        .status-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; font-weight: 600; }
+        .st-tamam { background: rgba(0, 230, 118, 0.15); color: var(--success); border: 1px solid var(--success); }
+        .st-devam { background: rgba(255, 234, 0, 0.15); color: var(--warning); border: 1px solid var(--warning); }
+        .st-bekliyor { background: rgba(255, 51, 102, 0.15); color: var(--danger); border: 1px solid var(--danger); }
+        
+        .task-checkbox { appearance: none; width: 18px; height: 18px; border: 2px solid var(--text-muted); border-radius: 4px; cursor: pointer; display: grid; place-content: center; }
+        .task-checkbox::before { content: ""; width: 10px; height: 10px; transform: scale(0); transition: 120ms transform ease-in-out; box-shadow: inset 1em 1em var(--accent); transform-origin: center; clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%); }
+        .task-checkbox:checked { border-color: var(--accent); }
+        .task-checkbox:checked::before { transform: scale(1); }
+        .task-text { flex-grow: 1; margin: 0 10px; transition: color 0.2s; }
+        .task-checkbox:checked + .task-text { color: var(--text-muted); text-decoration: line-through; }
+
+        /* AYARLAR MODALI */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+            z-index: 100; display: none; justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .modal-content {
+            background: rgba(15,15,20,0.95); border: 1px solid var(--accent);
+            padding: 2rem; border-radius: 16px; width: 450px; max-width: 90%; max-height: 90vh; overflow-y: auto;
+            box-shadow: 0 0 30px rgba(0,255,204,0.2);
+            transform: scale(0.9); transition: transform 0.3s;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        
+        /* Toggle Switch */
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.2); transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent); }
+        input:checked + .slider:before { transform: translateX(20px); background-color: #000; }
+
+        /* RAHMAN SURESİ KARTI ÖZEL TASARIM */
+        .verse-card { text-align: center; justify-content: center; border-color: rgba(0, 230, 118, 0.3); }
+        .verse-text { font-size: 1.3rem; font-weight: 500; font-style: italic; line-height: 1.4; margin-bottom: 10px; color: #fff;}
+        .verse-ref { color: var(--success); font-size: 0.9rem; font-weight: bold; }
+
+        /* ÖZLÜ SÖZ KARTI ÖZEL TASARIM */
+        .quote-display { flex-grow: 1; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 1.2rem; font-style: italic; color: var(--text-main); padding: 20px; border-left: 4px solid var(--accent); background: rgba(0,255,204,0.05); border-radius: 0 8px 8px 0; margin-bottom: 15px;}
+
+    </style>
+</head>
+<body>
+
+    <!-- ARKA PLAN GÖRSELİ -->
+    <div class="bg-image" id="bgImage"></div>
+
+    <!-- AYARLAR MODALI -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; align-items: center;">
+                <h2 style="margin: 0; color: var(--accent);">Görünüm ve Modüller</h2>
+                <button onclick="closeSettings()" style="background: transparent; color: white; border: 1px solid white; padding: 5px 10px;">✕</button>
+            </div>
+            
+            <button onclick="toggleEditMode()" id="editModeBtn" style="width: 100%; margin-bottom: 15px; background: transparent; border: 1px solid var(--accent); color: var(--accent);">🛠️ Düzenleme Modunu Aç (Sürükle-Bırak)</button>
+
+            <!-- Görünüm Ayarları -->
+            <div class="setting-row">
+                <span>Arka Plan Görseli</span>
+                <select id="bgSelect" onchange="changeBackground()" style="width: 120px;">
+                    <option value="1.webp">1.webp</option>
+                    <option value="2.webp">2.webp</option>
+                    <option value="3.webp">3.webp</option>
+                    <option value="4.webp">4.webp</option>
+                    <option value="5.webp">5.webp</option>
+                    <option value="6.webp">6.webp</option>
+                    <option value="7.webp">7.webp</option>
+                    <option value="8.webp">8.webp</option>
+                    <option value="9.webp">9.webp</option>
+                    <option value="10.webp">10.webp</option>
+                    <option value="11.webp">11.webp</option>
+                    <option value="12.webp">12.webp</option>
+                    <option value="13.webp">13.webp</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <span>Bulanıklık (Blur)</span>
+                <input type="range" id="blurRange" min="0" max="75" value="8" style="width: 120px;" oninput="changeBlur()">
+            </div>
+
+            <!-- Standart Modüller -->
+            <h4 style="color: var(--text-muted); margin-top: 20px; border-bottom: 1px solid var(--card-border); padding-bottom: 5px;">Standart Modüller</h4>
+            <div class="setting-row"><span>Rahman Suresi</span><label class="switch"><input type="checkbox" id="toggle-verse" onchange="toggleModule('verse')"><span class="slider"></span></label></div>
+            <div class="setting-row"><span>LGS Geri Sayım</span><label class="switch"><input type="checkbox" id="toggle-lgs" onchange="toggleModule('lgs')"><span class="slider"></span></label></div>
+            <div class="setting-row"><span>Hızlı Erişim</span><label class="switch"><input type="checkbox" id="toggle-links" onchange="toggleModule('links')"><span class="slider"></span></label></div>
+            <div class="setting-row"><span>Aktif Projeler</span><label class="switch"><input type="checkbox" id="toggle-projects" onchange="toggleModule('projects')"><span class="slider"></span></label></div>
+            <div class="setting-row"><span>Günlük Görevler</span><label class="switch"><input type="checkbox" id="toggle-tasks" onchange="toggleModule('tasks')"><span class="slider"></span></label></div>
+            <div class="setting-row"><span>Özlü Sözler</span><label class="switch"><input type="checkbox" id="toggle-quotes" onchange="toggleModule('quotes')"><span class="slider"></span></label></div>
+            <div class="setting-row"><span>Karalama Defteri</span><label class="switch"><input type="checkbox" id="toggle-notes" onchange="toggleModule('notes')"><span class="slider"></span></label></div>
+
+            <!-- Özel Modüller Ayarları -->
+            <h4 style="color: var(--text-muted); margin-top: 20px; border-bottom: 1px solid var(--card-border); padding-bottom: 5px;">Özel Modüller</h4>
+            <div id="customModulesSettingsList"></div>
+
+            <!-- Yeni Özel Modül Ekleme Formu -->
+            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-top: 15px;">
+                <h5 style="margin: 0 0 10px 0; color: var(--accent);">+ Yeni Modül Oluştur</h5>
+                <input type="text" id="newModTitle" placeholder="Modül Başlığı" style="margin-bottom: 10px;">
+                <textarea id="newModContent" rows="3" placeholder="İçerik (Metin veya HTML girebilirsin)" style="margin-bottom: 10px;"></textarea>
+                <button onclick="createCustomModule()" style="width: 100%;">Modülü Ekle</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="header">
+        <div class="brand">
+            <h1>NYX LABS</h1>
+            <p>● OS ENVIRONMENT V4</p>
+        </div>
+        <div class="clock-widget">
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 5px;">
+                <button class="settings-btn" onclick="openSettings()">⚙️ Ayarlar</button>
+            </div>
+            <div class="time" id="clock">00:00:00</div>
+            <div class="date" id="date">Yükleniyor...</div>
+        </div>
+    </div>
+
+    <div class="grid-container" id="mainGrid">
+
+        <!-- RAHMAN SURESİ MODÜLÜ -->
+        <div class="card verse-card size-full" id="module-verse">
+            <div class="edit-controls"><select onchange="changeSize('module-verse', this.value)"><option value="size-normal">Normal</option><option value="size-wide">Geniş</option><option value="size-full" selected>Tam</option></select></div>
+            <div class="verse-text" id="verse-text">"O halde Rabbinizin hangi nimetlerini yalanlıyorsunuz?"</div>
+            <div class="verse-ref" id="verse-ref">- Rahmân Suresi, 13</div>
+        </div>
+
+        <!-- LGS GERİ SAYIM -->
+        <div class="card size-full" id="module-lgs" style="align-items: center; justify-content: center; padding: 2rem;">
+            <div class="edit-controls"><select onchange="changeSize('module-lgs', this.value)"><option value="size-normal">Normal</option><option value="size-wide">Geniş</option><option value="size-full" selected>Tam</option></select></div>
+            <h2 class="card-title" style="margin-bottom: 10px; color: var(--accent);">🎯 HEDEF: LGS 2026</h2>
+            <div id="countdown" class="lgs-timer">00 : 00 : 00 : 00</div>
+            <div class="lgs-labels">
+                <span>GÜN</span><span>SAAT</span><span>DAKİKA</span><span>SANİYE</span>
+            </div>
+        </div>
+
+        <!-- HIZLI ERİŞİM -->
+        <div class="card size-normal" id="module-links">
+            <div class="edit-controls"><select onchange="changeSize('module-links', this.value)"><option value="size-normal" selected>Normal</option><option value="size-wide">Geniş</option><option value="size-full">Tam</option></select></div>
+            <div class="card-header"><h3 class="card-title">🚀 Hızlı Erişim</h3></div>
+            <div class="link-grid" id="linksContainer"></div>
+            <div class="add-form">
+                <input type="text" id="linkName" placeholder="Adı" style="flex: 1;">
+                <input type="text" id="linkUrl" placeholder="URL" style="flex: 2;">
+                <button onclick="addLink()">Ekle</button>
+            </div>
+        </div>
+
+        <!-- PROJELER -->
+        <div class="card size-normal" id="module-projects">
+            <div class="edit-controls"><select onchange="changeSize('module-projects', this.value)"><option value="size-normal" selected>Normal</option><option value="size-wide">Geniş</option><option value="size-full">Tam</option></select></div>
+            <div class="card-header"><h3 class="card-title">📂 Aktif Projeler</h3></div>
+            <div class="list-container" id="projectsContainer"></div>
+            <div class="add-form">
+                <input type="text" id="projName" placeholder="Proje Adı" style="flex: 2;">
+                <select id="projStatus" style="flex: 1;">
+                    <option value="st-devam">Gelişiyor</option>
+                    <option value="st-tamam">Tamamlandı</option>
+                    <option value="st-bekliyor">Bekliyor</option>
+                </select>
+                <button onclick="addProject()">Ekle</button>
+            </div>
+        </div>
+
+        <!-- GÖREVLER -->
+        <div class="card size-normal" id="module-tasks">
+            <div class="edit-controls"><select onchange="changeSize('module-tasks', this.value)"><option value="size-normal" selected>Normal</option><option value="size-wide">Geniş</option><option value="size-full">Tam</option></select></div>
+            <div class="card-header"><h3 class="card-title">📝 Günlük Görevler</h3></div>
+            <div class="list-container" id="tasksContainer"></div>
+            <div class="add-form">
+                <input type="text" id="taskInput" placeholder="Yeni görev yaz..." style="flex: 1;" onkeypress="if(event.key === 'Enter') addTask()">
+                <button onclick="addTask()">Ekle</button>
+            </div>
+        </div>
+
+        <!-- ÖZLÜ SÖZLER MODÜLÜ -->
+        <div class="card size-normal" id="module-quotes">
+            <div class="edit-controls"><select onchange="changeSize('module-quotes', this.value)"><option value="size-normal" selected>Normal</option><option value="size-wide">Geniş</option><option value="size-full">Tam</option></select></div>
+            <div class="card-header">
+                <h3 class="card-title">✨ Günün Sözü</h3>
+                <button class="btn-danger" style="background: transparent; border-color: var(--card-border); color: var(--text-muted);" onclick="changeQuote()">🔄 Değiştir</button>
+            </div>
+            <div class="quote-display" id="currentQuote">Sistemleri hacklemeden önce kendi zihnini hackle.</div>
+            <div class="add-form">
+                <input type="text" id="quoteInput" placeholder="Kendi motivasyon sözünü ekle..." style="flex: 1;" onkeypress="if(event.key === 'Enter') addQuote()">
+                <button onclick="addQuote()">Ekle</button>
+                <button class="btn-danger" onclick="deleteCurrentQuote()" title="Şu anki sözü sil">Sil</button>
+            </div>
+        </div>
+
+        <!-- HIZLI NOTLAR -->
+        <div class="card size-wide" id="module-notes">
+            <div class="edit-controls"><select onchange="changeSize('module-notes', this.value)"><option value="size-normal">Normal</option><option value="size-wide" selected>Geniş</option><option value="size-full">Tam</option></select></div>
+            <div class="card-header">
+                <h3 class="card-title">💡 Karalama Defteri</h3>
+                <span id="saveStatus" style="font-size: 12px; color: var(--success); opacity: 0; transition: opacity 0.3s;">Kaydedildi</span>
+            </div>
+            <textarea id="quickNotes" rows="7" placeholder="Aklına gelen fikirleri, kod bloklarını veya notları buraya yaz... (Otomatik kaydedilir)" style="resize: none; flex-grow: 1;"></textarea>
+        </div>
+
+    </div>
+
+    <script>
+        // --- GÖRÜNÜM AYARLARI (Arka plan & Blur) ---
+        function loadAppearance() {
+            const savedBg = localStorage.getItem('nyx_bg') || '1.webp';
+            const savedBlur = localStorage.getItem('nyx_blur') || '8';
+            document.getElementById('bgSelect').value = savedBg;
+            document.getElementById('blurRange').value = savedBlur;
+            document.getElementById('bgImage').style.backgroundImage = `url('${savedBg}')`;
+            document.documentElement.style.setProperty('--bg-blur', `${savedBlur}px`);
+        }
+        function changeBackground() {
+            const bg = document.getElementById('bgSelect').value;
+            localStorage.setItem('nyx_bg', bg);
+            document.getElementById('bgImage').style.backgroundImage = `url('${bg}')`;
+        }
+        function changeBlur() {
+            const blur = document.getElementById('blurRange').value;
+            localStorage.setItem('nyx_blur', blur);
+            document.documentElement.style.setProperty('--bg-blur', `${blur}px`);
+        }
+
+        // --- RAHMAN SURESİ MODÜLÜ ---
+const rahmanVerses = [
+    { a: "Rahmân Kur'an'ı öğretti. İnsanı yarattı. Ona beyanı öğretti.", m: "Rahmân, 1-4" },
+    { a: "Güneş ve ay bir hesaba göre hareket etmektedir.", m: "Rahmân, 5" },
+    { a: "Yıldızlar ve ağaçlar (Allah'a) secde ederler.", m: "Rahmân, 6" },
+    { a: "Göğü O yükseltti, denge ve ölçüyü O koydu. Sakın dengeyi bozmayın.", m: "Rahmân, 7-8" },
+    { a: "Tartıyı adaletle yapın, terazide eksiklik yapmayın.", m: "Rahmân, 9" },
+    { a: "O, yeryüzünü canlılar için oluşturdu. Orada meyveler ve salkımlı hurma ağaçları vardır.", m: "Rahmân, 10-11" },
+    { a: "Yapraklı taneler ve hoş kokulu bitkiler vardır.", m: "Rahmân, 12" },
+    { a: "O halde Rabbinizin hangi nimetlerini yalanlıyorsunuz?", m: "Rahmân, 13" },
+    { a: "Allah insanı, pişmiş çamur gibi kuru bir balçıktan yarattı. Cinni de yalın bir ateş alevinden yarattı.", m: "Rahmân, 14-15" },
+    { a: "O, iki doğunun ve iki batının Rabbidir.", m: "Rahmân, 17" },
+    { a: "İki denizi birbirine kavuşmak üzere salıvermiştir. Aralarında bir engel vardır, birbirine geçip karışmazlar.", m: "Rahmân, 19-20" },
+    { a: "O denizlerin her ikisinden de inci ve mercan çıkar.", m: "Rahmân, 22" },
+    { a: "Denizde koca dağlar gibi yükselen gemiler de O'nundur.", m: "Rahmân, 24" },
+    { a: "Yeryüzünde bulunan her canlı yok olacaktır. Ancak azamet ve ikram sahibi Rabbinin zâtı bâki kalacaktır.", m: "Rahmân, 26-27" },
+    { a: "Göklerde ve yerde bulunanlar O'ndan isterler. O, her an yeni bir tecellidedir.", m: "Rahmân, 29" },
+    { a: "Ey cin ve ins toplulukları! Göklerin ve yerin sınırlarından geçip gitmeye gücünüz yetiyorsa haydi geçin! Ancak büyük bir güçle geçebilirsiniz.", m: "Rahmân, 33" },
+    { a: "Gök yarılıp da, erimiş yağ gibi kıpkırmızı bir gül haline geldiği zaman (hâliniz nice olur)?", m: "Rahmân, 37" },
+    { a: "Suçlular simalarından tanınır, perçemlerinden ve ayaklarından yakalanırlar.", m: "Rahmân, 41" },
+    { a: "Rabbinin huzurunda durmaktan korkan kimselere iki cennet vardır.", m: "Rahmân, 46" },
+    { a: "İki cennet de (türlü türlü) ağaçlarla doludur.", m: "Rahmân, 48" },
+    { a: "İçlerinde akıp giden iki pınar vardır.", m: "Rahmân, 50" },
+    { a: "İçlerinde her meyveden ikişer çeşit vardır.", m: "Rahmân, 52" },
+    { a: "Orada bakışlarını sadece eşlerine çevirmiş güzel eşler vardır.", m: "Rahmân, 56" },
+    { a: "Sanki onlar yakut ve mercandırlar.", m: "Rahmân, 58" },
+    { a: "İyiliğin karşılığı iyilikten başka bir şey midir?", m: "Rahmân, 60" },
+    { a: "Bu iki cennetten başka iki cennet daha vardır.", m: "Rahmân, 62" },
+    { a: "O cennetler koyu yeşildirler.", m: "Rahmân, 64" },
+    { a: "İçlerinde fışkıran iki kaynak vardır.", m: "Rahmân, 66" },
+    { a: "İçlerinde her türlü meyve, hurma ve nar vardır.", m: "Rahmân, 68" },
+    { a: "İçlerinde huri denilen, otağlar içinde korunmuş güzel kadınlar vardır.", m: "Rahmân, 70-72" },
+    { a: "Onlar yeşil yastıklara ve harikulade güzel işlemeli döşeklere yaslanırlar.", m: "Rahmân, 76" },
+    { a: "Azamet ve ikram sahibi Rabbinin adı ne yücedir!", m: "Rahmân, 78" }
+];
+        function loadRandomVerse() {
+            const random = rahmanVerses[Math.floor(Math.random() * rahmanVerses.length)];
+            document.getElementById('verse-text').innerText = `"${random.a}"`;
+            document.getElementById('verse-ref').innerText = `- ${random.m}`;
+        }
+
+        // --- ÖZEL MODÜLLER (Açık Uçlu) ---
+        let customModules = JSON.parse(localStorage.getItem('nyx_custom_modules')) || [];
+        function renderCustomModules() {
+            const grid = document.getElementById('mainGrid');
+            const settingsList = document.getElementById('customModulesSettingsList');
+            settingsList.innerHTML = '';
+            
+            // Önce griddeki mevcut özel modülleri temizle
+            document.querySelectorAll('.custom-card').forEach(c => c.remove());
+
+            customModules.forEach(mod => {
+                // Settings menüsüne ekle
+                settingsList.innerHTML += `
+                    <div class="setting-row">
+                        <span>${mod.title}</span>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <button class="btn-danger" style="padding: 2px 6px; font-size:10px;" onclick="deleteCustomModule('${mod.id}')">Sil</button>
+                            <label class="switch"><input type="checkbox" id="toggle-${mod.id}" onchange="toggleModule('${mod.id}')"><span class="slider"></span></label>
+                        </div>
+                    </div>
+                `;
+
+                // Grid'e elementi oluştur
+                const div = document.createElement('div');
+                div.className = `card custom-card ${mod.size || 'size-normal'}`;
+                div.id = `module-${mod.id}`;
+                
+                // Seçili boyutu combobox'ta göstermek için logic
+                const selNormal = mod.size === 'size-normal' || !mod.size ? 'selected' : '';
+                const selWide = mod.size === 'size-wide' ? 'selected' : '';
+                const selFull = mod.size === 'size-full' ? 'selected' : '';
+
+                div.innerHTML = `
+                    <div class="edit-controls">
+                        <select onchange="changeSize('module-${mod.id}', this.value)">
+                            <option value="size-normal" ${selNormal}>Normal</option>
+                            <option value="size-wide" ${selWide}>Geniş</option>
+                            <option value="size-full" ${selFull}>Tam</option>
+                        </select>
+                    </div>
+                    <div class="card-header"><h3 class="card-title">${mod.title}</h3></div>
+                    <div style="flex-grow:1; overflow-y:auto;">${mod.content}</div>
+                `;
+                grid.appendChild(div);
+                
+                // Varsayılan görünürlük (toggleSettings) kısmına ekleyebilmek için
+                if(moduleSettings[mod.id] === undefined) moduleSettings[mod.id] = true; 
+            });
+            
+            initDragAndDrop(); // Yeni modüller için drag & drop aktifleştir
+        }
+
+        function createCustomModule() {
+            const title = document.getElementById('newModTitle').value;
+            const content = document.getElementById('newModContent').value;
+            if(!title) return;
+            const id = 'custom_' + Date.now();
+            customModules.push({ id, title, content, size: 'size-normal' });
+            localStorage.setItem('nyx_custom_modules', JSON.stringify(customModules));
+            document.getElementById('newModTitle').value = '';
+            document.getElementById('newModContent').value = '';
+            
+            moduleSettings[id] = true;
+            localStorage.setItem('nyx_settings', JSON.stringify(moduleSettings));
+            
+            // Yeni modülü en sona eklemesi için grid order'ı güncelle
+            const order = getSavedOrder();
+            order.push(`module-${id}`);
+            localStorage.setItem('nyx_module_order', JSON.stringify(order));
+
+            renderCustomModules();
+            applySettings();
+            applyOrderAndSizes();
+        }
+
+        function deleteCustomModule(id) {
+            customModules = customModules.filter(m => m.id !== id);
+            localStorage.setItem('nyx_custom_modules', JSON.stringify(customModules));
+            delete moduleSettings[id];
+            localStorage.setItem('nyx_settings', JSON.stringify(moduleSettings));
+            
+            // Dom'dan kaldır
+            const el = document.getElementById(`module-${id}`);
+            if(el) el.remove();
+            
+            renderCustomModules();
+            applySettings();
+        }
+
+
+        // --- AYARLAR VE MODÜL GÖRÜNÜRLÜĞÜ ---
+        const defaultSettings = { verse: true, lgs: true, links: true, projects: true, tasks: true, quotes: true, notes: true };
+        let moduleSettings = JSON.parse(localStorage.getItem('nyx_settings')) || defaultSettings;
+
+        function applySettings() {
+            for(let key in moduleSettings) {
+                const el = document.getElementById(`module-${key}`);
+                const toggle = document.getElementById(`toggle-${key}`);
+                if(el) el.style.display = moduleSettings[key] ? 'flex' : 'none';
+                if(toggle) toggle.checked = moduleSettings[key];
+            }
+        }
+
+        function toggleModule(key) {
+            moduleSettings[key] = document.getElementById(`toggle-${key}`).checked;
+            localStorage.setItem('nyx_settings', JSON.stringify(moduleSettings));
+            applySettings();
+        }
+
+        function openSettings() { document.getElementById('settingsModal').classList.add('active'); }
+        function closeSettings() { document.getElementById('settingsModal').classList.remove('active'); }
+
+        // --- BOYUTLANDIRMA (RESIZE) ---
+        // Sadece class değişimi yapıyor ve kaydediyor.
+        let moduleSizes = JSON.parse(localStorage.getItem('nyx_module_sizes')) || {};
+        function changeSize(moduleId, newSizeClass) {
+            const el = document.getElementById(moduleId);
+            if(!el) return;
+            el.classList.remove('size-normal', 'size-wide', 'size-full');
+            el.classList.add(newSizeClass);
+            
+            moduleSizes[moduleId] = newSizeClass;
+            localStorage.setItem('nyx_module_sizes', JSON.stringify(moduleSizes));
+
+            // Eğer bu özel bir modülse onun objesini de güncelle
+            if(moduleId.startsWith('module-custom_')) {
+                const cId = moduleId.replace('module-', '');
+                const mod = customModules.find(m => m.id === cId);
+                if(mod) {
+                    mod.size = newSizeClass;
+                    localStorage.setItem('nyx_custom_modules', JSON.stringify(customModules));
+                }
+            }
+        }
+
+        // --- DÜZENLEME MODU VE SÜRÜKLE BIRAK (DRAG & DROP) ---
+        let editMode = false;
+        function toggleEditMode() {
+            editMode = !editMode;
+            if(editMode) {
+                document.body.classList.add('edit-mode');
+                document.getElementById('editModeBtn').innerText = '💾 Düzenlemeyi Bitir ve Kaydet';
+                document.getElementById('editModeBtn').style.background = 'var(--accent)';
+                document.getElementById('editModeBtn').style.color = '#000';
+                makeCardsDraggable(true);
+            } else {
+                document.body.classList.remove('edit-mode');
+                document.getElementById('editModeBtn').innerText = '🛠️ Düzenleme Modunu Aç (Sürükle-Bırak)';
+                document.getElementById('editModeBtn').style.background = 'transparent';
+                document.getElementById('editModeBtn').style.color = 'var(--accent)';
+                makeCardsDraggable(false);
+                saveModuleOrder();
+            }
+        }
+
+        function makeCardsDraggable(isDraggable) {
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.draggable = isDraggable;
+            });
+        }
+
+        function initDragAndDrop() {
+            const container = document.getElementById('mainGrid');
+            let draggedItem = null;
+
+            // Sadece bir kere event listener eklendiğinden emin olmak için eski listenerları ezip yeniliyoruz (basitçe)
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                // Event listener yığılmasını önlemek için clone mantığı (basit reset)
+                card.ondragstart = function(e) {
+                    if(!editMode) { e.preventDefault(); return; }
+                    draggedItem = this;
+                    setTimeout(() => this.classList.add('dragging'), 0);
+                };
+                card.ondragend = function() {
+                    this.classList.remove('dragging');
+                    draggedItem = null;
+                    saveModuleOrder();
+                };
+                card.ondragover = function(e) { e.preventDefault(); };
+                card.ondragenter = function(e) {
+                    e.preventDefault();
+                    if (editMode && this !== draggedItem && this.classList.contains('card')) {
+                        let allCards = [...container.querySelectorAll('.card')];
+                        let draggedIndex = allCards.indexOf(draggedItem);
+                        let targetIndex = allCards.indexOf(this);
+                        if (draggedIndex < targetIndex) {
+                            this.parentNode.insertBefore(draggedItem, this.nextSibling);
+                        } else {
+                            this.parentNode.insertBefore(draggedItem, this);
+                        }
+                    }
+                };
+            });
+        }
+
+        function saveModuleOrder() {
+            const cards = document.querySelectorAll('#mainGrid .card');
+            const order = Array.from(cards).map(card => card.id);
+            localStorage.setItem('nyx_module_order', JSON.stringify(order));
+        }
+
+        function getSavedOrder() {
+            const defaultOrder = ['module-verse', 'module-lgs', 'module-links', 'module-projects', 'module-tasks', 'module-quotes', 'module-notes'];
+            return JSON.parse(localStorage.getItem('nyx_module_order')) || defaultOrder;
+        }
+
+        function applyOrderAndSizes() {
+            const container = document.getElementById('mainGrid');
+            const order = getSavedOrder();
+            
+            // Sıralamayı Uygula
+            order.forEach(id => {
+                const el = document.getElementById(id);
+                if(el) container.appendChild(el); // Varolan elementi sona taşır, sonuçta listeye göre sıralanmış olur
+            });
+
+            // Boyutları Uygula
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                if(moduleSizes[card.id]) {
+                    card.classList.remove('size-normal', 'size-wide', 'size-full');
+                    card.classList.add(moduleSizes[card.id]);
+                    // Combobox değerini güncelle
+                    const select = card.querySelector('select');
+                    if(select) select.value = moduleSizes[card.id];
+                }
+            });
+        }
+
+
+        // --- DİĞER MODÜLLERİN FONKSİYONLARI ---
+
+        // Özlü Sözler
+        let quotes = JSON.parse(localStorage.getItem('nyx_quotes')) || [
+            "Sistemleri hacklemeden önce kendi zihnini hackle.",
+            "Kod çalışmıyorsa bir sebebi vardır, çalışıyorsa bin sebebi.",
+            "Büyük başarılar, küçük ama sürekli adımların sonucudur."
+        ];
+        let currentQuoteIndex = 0;
+        function changeQuote() {
+            if(quotes.length === 0) {
+                document.getElementById('currentQuote').innerText = "Henüz bir söz eklemedin.";
+                return;
+            }
+            currentQuoteIndex = Math.floor(Math.random() * quotes.length);
+            document.getElementById('currentQuote').innerText = `"${quotes[currentQuoteIndex]}"`;
+        }
+        function addQuote() {
+            const text = document.getElementById('quoteInput').value;
+            if(!text) return;
+            quotes.push(text);
+            localStorage.setItem('nyx_quotes', JSON.stringify(quotes));
+            document.getElementById('quoteInput').value = '';
+            currentQuoteIndex = quotes.length - 1;
+            document.getElementById('currentQuote').innerText = `"${quotes[currentQuoteIndex]}"`;
+        }
+        function deleteCurrentQuote() {
+            if(quotes.length === 0) return;
+            quotes.splice(currentQuoteIndex, 1);
+            localStorage.setItem('nyx_quotes', JSON.stringify(quotes));
+            changeQuote();
+        }
+
+        // Saat ve Tarih
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString('tr-TR', { hour12: false });
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('date').innerText = now.toLocaleDateString('tr-TR', options);
+        }
+        setInterval(updateClock, 1000);
+
+        // LGS Geri Sayım
+        const lgsDate = new Date("June 7, 2026 09:30:00").getTime();
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const diff = lgsDate - now;
+            // Gün 2 haneli istendi: padStart(2, '0')
+            const d = Math.floor(diff / (1000 * 60 * 60 * 24)).toString().padStart(2, '0');
+            const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)).toString().padStart(2, '0');
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+            const s = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0');
+            document.getElementById("countdown").innerHTML = `${d} : ${h} : ${m} : ${s}`;
+        }
+        setInterval(updateCountdown, 1000);
+
+        // Hızlı Linkler
+        let links = JSON.parse(localStorage.getItem('nyx_links')) || [
+            { id: 1, name: "İyilik Köprüsü", url: "https://iyilikkoprusu.org" },
+            { id: 2, name: "Modem Panel", url: "http://192.168.1.1" }
+        ];
+        function renderLinks() {
+            const container = document.getElementById('linksContainer');
+            container.innerHTML = '';
+            links.forEach(link => {
+                container.innerHTML += `
+                    <div class="link-card">
+                        <span class="delete-icon" onclick="deleteLink(${link.id})">✕</span>
+                        <a href="${link.url}" target="_blank" style="color: inherit; text-decoration: none; font-weight: 600; font-size: 0.9rem;">${link.name}</a>
+                        <span style="font-size: 0.7rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${link.url.replace('https://', '')}</span>
+                    </div>`;
+            });
+            localStorage.setItem('nyx_links', JSON.stringify(links));
+        }
+        function addLink() {
+            const name = document.getElementById('linkName').value;
+            let url = document.getElementById('linkUrl').value;
+            if(!name || !url) return;
+            if(!url.startsWith('http')) url = 'https://' + url;
+            links.push({ id: Date.now(), name, url });
+            document.getElementById('linkName').value = ''; document.getElementById('linkUrl').value = '';
+            renderLinks();
+        }
+        function deleteLink(id) { links = links.filter(l => l.id !== id); renderLinks(); }
+
+        // Projeler
+        let projects = JSON.parse(localStorage.getItem('nyx_projects')) || [
+            { id: 1, name: "Dashboard V4", status: "st-tamam", statusText: "Tamamlandı" }
+        ];
+        function renderProjects() {
+            const container = document.getElementById('projectsContainer');
+            container.innerHTML = '';
+            projects.forEach(proj => {
+                let bColor = proj.status === 'st-tamam' ? 'var(--success)' : (proj.status === 'st-devam' ? 'var(--warning)' : 'var(--danger)');
+                container.innerHTML += `
+                    <div class="list-item" style="border-left-color: ${bColor}">
+                        <span style="font-weight: 600; font-size: 0.95rem;">${proj.name}</span>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <span class="status-badge ${proj.status}">${proj.statusText}</span>
+                            <button class="btn-danger" onclick="deleteProject(${proj.id})">Sil</button>
+                        </div>
+                    </div>`;
+            });
+            localStorage.setItem('nyx_projects', JSON.stringify(projects));
+        }
+        function addProject() {
+            const name = document.getElementById('projName').value;
+            const statusSelect = document.getElementById('projStatus');
+            if(!name) return;
+            projects.push({ id: Date.now(), name, status: statusSelect.value, statusText: statusSelect.options[statusSelect.selectedIndex].text });
+            document.getElementById('projName').value = '';
+            renderProjects();
+        }
+        function deleteProject(id) { projects = projects.filter(p => p.id !== id); renderProjects(); }
+
+        // Görevler
+        let tasks = JSON.parse(localStorage.getItem('nyx_tasks')) || [{ id: 1, text: "Matematik Tekrarı", done: false }];
+        function renderTasks() {
+            const container = document.getElementById('tasksContainer');
+            container.innerHTML = '';
+            tasks.forEach(task => {
+                container.innerHTML += `
+                    <div class="list-item" style="padding: 8px 15px;">
+                        <input type="checkbox" class="task-checkbox" ${task.done ? 'checked' : ''} onchange="toggleTask(${task.id})">
+                        <span class="task-text">${task.text}</span>
+                        <button class="btn-danger" style="padding: 2px 6px; font-size: 10px;" onclick="deleteTask(${task.id})">✕</button>
+                    </div>`;
+            });
+            localStorage.setItem('nyx_tasks', JSON.stringify(tasks));
+        }
+        function addTask() {
+            const text = document.getElementById('taskInput').value;
+            if(!text) return;
+            tasks.push({ id: Date.now(), text, done: false });
+            document.getElementById('taskInput').value = ''; renderTasks();
+        }
+        function toggleTask(id) { const task = tasks.find(t => t.id === id); if(task) task.done = !task.done; renderTasks(); }
+        function deleteTask(id) { tasks = tasks.filter(t => t.id !== id); renderTasks(); }
+
+        // Otomatik Kaydeden Notlar
+        const notesArea = document.getElementById('quickNotes');
+        const saveStatus = document.getElementById('saveStatus');
+        let typingTimer;
+        notesArea.value = localStorage.getItem('nyx_notes') || '';
+        notesArea.addEventListener('input', () => {
+            clearTimeout(typingTimer);
+            saveStatus.style.opacity = '0';
+            typingTimer = setTimeout(() => {
+                localStorage.setItem('nyx_notes', notesArea.value);
+                saveStatus.style.opacity = '1';
+                setTimeout(() => saveStatus.style.opacity = '0', 2000);
+            }, 800);
+        });
+
+        // Sayfa Yüklendiğinde Başlat
+        window.onload = () => {
+            loadAppearance();
+            loadRandomVerse();
+            renderCustomModules(); // Özel modülleri oluştur ve DOM'a ekle
+            applyOrderAndSizes();  // Tüm modüllerin sırasını ve boyutunu ayarla
+            applySettings();       // Açık/Kapalı durumlarını ayarla
+            initDragAndDrop();     // Sürükle bırak olaylarını bağla
+            
+            changeQuote();
+            updateClock();
+            updateCountdown();
+            renderLinks();
+            renderProjects();
+            renderTasks();
+        };
+    </script>
+</body>
+</html>
