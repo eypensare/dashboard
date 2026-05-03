@@ -3,629 +3,480 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | Nyx Labs - Soft UI</title>
+    <title>Nyx Labs | Web OS Ultimate</title>
     
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Lucide Icons -->
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
 
     <style>
         :root {
-            --accent: #2dd4bf;
-            --accent-hover: #14b8a6;
-            --danger: #fb7185;
-            --success: #34d399;
-            --text-main: #ffffff;
-            --text-muted: rgba(255, 255, 255, 0.6);
-            --sidebar-width: 280px;
-            
-            /* Glassmorphism Variables */
-            --glass-bg: rgba(20, 20, 25, 0.25);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --glass-border-highlight: rgba(255, 255, 255, 0.25);
-            --glass-blur: blur(24px) saturate(180%);
-            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            --accent: #00ffcc;
+            --accent-glow: rgba(0, 255, 204, 0.4);
+            --danger: #ff3366;
+            --success: #00e676;
+            --glass-bg: rgba(20, 20, 25, 0.35);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --glass-blur: blur(30px) saturate(180%);
+            --panel-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
         body {
             font-family: 'Inter', sans-serif;
-            color: var(--text-main);
+            color: #fff;
             min-height: 100vh;
-            overflow-x: hidden;
-            background-color: #050505; /* Fallback */
+            overflow: hidden;
+            background-color: #050505;
         }
 
-        /* Arka Plan Katmanı */
         #bg-layer {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background-size: cover;
-            background-position: center;
-            z-index: -1;
-            transition: background-image 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        /* Okunabilirlik için hafif kararartma */
-        #bg-layer::after {
-            content: '';
-            position: absolute; inset: 0;
-            background: linear-gradient(to bottom right, rgba(0,0,0,0.3), rgba(0,0,0,0.6));
+            position: fixed; inset: 0;
+            background-size: cover; background-position: center;
+            z-index: -2; transition: background-image 1.5s ease-in-out;
+            background-color: #0a0a0f;
         }
 
-        /* Kaydırma Çubuğu Özelleştirme */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
-
-        .layout { display: flex; min-height: 100vh; }
-
-        /* Sidebar - Ultra Glass */
-        aside {
-            width: var(--sidebar-width);
-            background: rgba(10, 10, 15, 0.4);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border-right: 1px solid var(--glass-border);
-            padding: 2.5rem 1.5rem;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
+        #workspace {
+            position: relative;
+            width: 100vw;
             height: 100vh;
-            z-index: 100;
+            padding: 20px;
+            z-index: 1;
         }
 
-        .logo {
-            font-weight: 800; font-size: 1.5rem; color: #fff;
-            letter-spacing: -1px; margin-bottom: 3rem;
-            display: flex; align-items: center; gap: 12px;
-            text-shadow: 0 0 20px rgba(255,255,255,0.3);
-        }
-        .logo i { color: var(--accent); }
-
-        nav ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-        nav li {
-            padding: 14px 18px; border-radius: 16px; cursor: pointer;
-            display: flex; align-items: center; gap: 14px;
-            color: var(--text-muted); font-weight: 500; font-size: 0.95rem;
-            transition: all 0.3s ease; border: 1px solid transparent;
-        }
-        nav li:hover {
-            background: rgba(255, 255, 255, 0.05); color: #fff;
-            border-color: rgba(255,255,255,0.05);
-        }
-        nav li.active {
-            background: linear-gradient(135deg, rgba(45, 212, 191, 0.2) 0%, rgba(45, 212, 191, 0.05) 100%);
-            color: var(--accent); border: 1px solid rgba(45, 212, 191, 0.2);
-            box-shadow: 0 4px 15px rgba(45, 212, 191, 0.1);
-        }
-
-        /* Arka Plan Kontrolcüsü (Sidebar Altı) */
-        .bg-controls {
-            margin-top: auto;
-            background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border);
-            border-radius: 16px; padding: 15px; text-align: center;
-        }
-        .bg-controls-title { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;}
-        .bg-btn-group { display: flex; justify-content: space-between; align-items: center; }
-        .icon-btn {
-            background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
-            color: #fff; width: 36px; height: 36px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: 0.2s;
-        }
-        .icon-btn:hover { background: rgba(255,255,255,0.1); transform: scale(1.05); border-color: var(--glass-border-highlight); }
-
-        /* Main Content */
-        main {
-            margin-left: var(--sidebar-width); flex: 1;
-            padding: 3rem 4rem; max-width: 1800px;
-        }
-
-        header { margin-bottom: 3rem; display: flex; justify-content: space-between; align-items: flex-end; }
-        #greeting { font-size: 2.5rem; font-weight: 700; margin-bottom: 5px; letter-spacing: -1px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
-        #date-display { color: var(--text-muted); font-size: 1.1rem; }
-
-        /* Grid Sistemi */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-            gap: 2rem;
-            grid-auto-flow: dense;
-        }
-
-        /* Glass Panel / Card */
+        /* İleri Seviye Glassmorphism Panel */
         .glass-panel {
+            position: absolute;
             background: var(--glass-bg);
             backdrop-filter: var(--glass-blur);
             -webkit-backdrop-filter: var(--glass-blur);
             border: 1px solid var(--glass-border);
-            border-top: 1px solid var(--glass-border-highlight);
-            border-left: 1px solid var(--glass-border-highlight);
-            box-shadow: var(--glass-shadow);
-            border-radius: 28px;
-            padding: 2rem;
-            position: relative;
-            transition: transform 0.3s ease, border-color 0.3s ease;
+            border-top: 1px solid rgba(255,255,255,0.25);
+            border-radius: 20px;
+            box-shadow: var(--panel-shadow);
+            display: flex;
+            flex-direction: column;
+            touch-action: none;
             overflow: hidden;
+            transition: box-shadow 0.3s ease, border-color 0.3s ease;
         }
-        .glass-panel:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.2); }
 
-        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-        .panel-title { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); display: flex; align-items: center; gap: 10px; }
+        .glass-panel.focused {
+            border-color: rgba(0, 255, 204, 0.3);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 255, 204, 0.05);
+        }
 
-        /* Saat Modülü */
-        #clock { font-size: 4rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; line-height: 1; margin-bottom: 10px; text-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .panel-header {
+            height: 42px;
+            padding: 0 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.03);
+            cursor: move;
+            user-select: none;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
 
-        /* Kısayollar Modülü */
-        .shortcuts-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
-        .shortcut-item {
-            background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);
-            border-radius: 16px; padding: 15px 10px; text-align: center;
-            cursor: pointer; transition: 0.2s; position: relative;
-            text-decoration: none; color: #fff; display: flex; flex-direction: column; align-items: center; gap: 8px;
+        .panel-controls {
+            display: flex;
+            gap: 10px;
         }
-        .shortcut-item:hover { background: rgba(255,255,255,0.08); border-color: var(--accent); }
-        .shortcut-item img { width: 32px; height: 32px; border-radius: 8px; }
-        .shortcut-name { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-        .delete-shortcut {
-            position: absolute; top: -5px; right: -5px; background: var(--danger);
-            color: #fff; width: 20px; height: 20px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; font-size: 10px;
-            opacity: 0; transition: 0.2s; border: none; cursor: pointer;
-        }
-        .shortcut-item:hover .delete-shortcut { opacity: 1; }
 
-        /* Görevler */
-        .task-list { display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 5px; }
-        .task-item {
-            display: flex; align-items: center; gap: 12px;
-            background: rgba(0,0,0,0.2); padding: 14px; border-radius: 16px;
-            border: 1px solid transparent; transition: 0.2s;
+        .control-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s, filter 0.2s;
         }
-        .task-item:hover { border-color: var(--glass-border); background: rgba(0,0,0,0.3); }
-        .check {
-            width: 22px; height: 22px; border: 2px solid var(--accent);
-            border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-            transition: 0.2s; flex-shrink: 0;
-        }
-        .check.done { background: var(--accent); }
-        .check.done::after { content: '✓'; color: #000; font-weight: 800; font-size: 14px; }
-        .task-text { flex: 1; font-size: 0.95rem; transition: 0.2s; }
-        .task-text.done { text-decoration: line-through; color: var(--text-muted); }
-        .btn-icon { background: none; border: none; color: var(--text-muted); cursor: pointer; transition: 0.2s; display: flex; }
-        .btn-icon:hover { color: var(--danger); transform: scale(1.1); }
+        .dot-close { background: var(--danger); box-shadow: 0 0 8px rgba(255, 51, 102, 0.4); }
+        .dot-close:hover { transform: scale(1.2); filter: brightness(1.2); }
 
-        /* Notlar */
-        textarea {
-            width: 100%; height: 180px; background: rgba(0,0,0,0.15); border: 1px solid var(--glass-border);
-            border-radius: 16px; padding: 1.25rem; color: #fff; font-family: 'Inter', sans-serif;
-            resize: none; outline: none; transition: 0.3s; font-size: 0.95rem; line-height: 1.5;
+        .panel-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #eee;
         }
-        textarea:focus { border-color: var(--accent); background: rgba(0,0,0,0.3); box-shadow: inset 0 2px 10px rgba(0,0,0,0.2); }
-        .save-indicator { position: absolute; bottom: 2.5rem; right: 2.5rem; font-size: 0.75rem; color: var(--accent); opacity: 0; transition: 0.3s; background: rgba(0,0,0,0.5); padding: 4px 10px; border-radius: 20px;}
 
-        /* Gmail */
-        .email-list { display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 5px; }
-        .email-item {
-            background: rgba(255,255,255,0.02); padding: 14px; border-radius: 16px;
-            font-size: 0.9rem; border: 1px solid var(--glass-border); transition: 0.2s;
+        .scroll-content {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+            background: rgba(0, 0, 0, 0.1);
         }
-        .email-item:hover { border-color: var(--accent); background: rgba(45, 212, 191, 0.05); }
-        .sender { font-weight: 700; color: var(--accent); display: block; margin-bottom: 4px; font-size: 0.8rem; }
-        
+
+        /* Alt Dock Tasarımı */
+        #taskbar {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 70px;
+            background: rgba(15, 15, 25, 0.4);
+            backdrop-filter: blur(25px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 15px;
+            z-index: 1000;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        }
+
+        .dock-item {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            color: rgba(255,255,255,0.8);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .dock-item:hover {
+            transform: translateY(-12px) scale(1.15);
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 10px 25px var(--accent-glow);
+            border-color: var(--accent);
+        }
+
+        /* Form Elemanları */
         .btn-action {
-            background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: #fff;
-            padding: 6px 12px; border-radius: 10px; cursor: pointer; transition: 0.2s; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.3s;
         }
-        .btn-action:hover { background: var(--accent); color: #000; border-color: var(--accent); }
-        
-        .badge { background: var(--danger); color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; }
+        .btn-action:hover { 
+            background: var(--accent); 
+            color: #000;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
 
-        @media (max-width: 1024px) {
-            aside { width: 80px; padding: 2rem 0.5rem; align-items: center; }
-            .logo span, nav li span, .bg-controls { display: none; }
-            main { margin-left: 80px; padding: 2rem; }
+        input, textarea, select {
+            width: 100%;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 14px;
+            color: #fff;
+            margin-bottom: 18px;
+            outline: none;
+            font-family: inherit;
+            transition: border-color 0.3s;
         }
+        input:focus, textarea:focus { border-color: var(--accent); }
+
+        #three-container { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+
+        /* Modal Tasarımı */
+        .overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+            display: none; align-items: center; justify-content: center; z-index: 2000;
+            backdrop-filter: blur(15px);
+        }
+        .overlay.open { display: flex; }
+        .modal-content {
+            width: 420px; 
+            background: rgba(20, 20, 25, 0.8); 
+            border: 1px solid var(--glass-border);
+            padding: 35px; 
+            border-radius: 28px; 
+            box-shadow: 0 40px 80px rgba(0,0,0,0.9);
+            backdrop-filter: blur(20px);
+        }
+
+        iframe { border: none; width: 100%; height: 100%; border-radius: 0 0 20px 20px; background: transparent; }
+        
+        /* Widgetlar */
+        .widget-clock { padding: 30px; text-align: center; }
+        .clock-time { font-family: 'Space Grotesk'; font-size: 3.5rem; font-weight: 700; color: var(--accent); line-height: 1; }
+        .clock-date { margin-top: 10px; opacity: 0.6; font-size: 0.9rem; letter-spacing: 1px; }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
     </style>
 </head>
 <body>
 
-    <!-- Arka Plan Katmanı (1.webp - 12.webp) -->
     <div id="bg-layer"></div>
+    <div id="three-container"></div>
 
-    <div class="layout">
-        <aside>
-            <div class="logo">
-                <i data-lucide="infinity"></i>
-                <span>NYX LABS</span>
-            </div>
-            <nav>
-                <ul>
-                    <li class="active"><i data-lucide="layout-dashboard"></i> <span>Workspace</span></li>
-                    <li><i data-lucide="mail"></i> <span>Gelen Kutusu</span></li>
-                    <li><i data-lucide="calendar"></i> <span>Takvim</span></li>
-                    <li><i data-lucide="settings"></i> <span>Ayarlar</span></li>
-                </ul>
-            </nav>
+    <div id="workspace"></div>
 
-            <!-- Arka Plan Kontrol -->
-            <div class="bg-controls">
-                <div class="bg-controls-title">Arka Plan <span id="bg-indicator">(1/12)</span></div>
-                <div class="bg-btn-group">
-                    <button class="icon-btn" onclick="prevBg()"><i data-lucide="chevron-left" size="18"></i></button>
-                    <button class="icon-btn" onclick="randomBg()"><i data-lucide="shuffle" size="18"></i></button>
-                    <button class="icon-btn" onclick="nextBg()"><i data-lucide="chevron-right" size="18"></i></button>
-                </div>
-            </div>
-        </aside>
-
-        <main>
-            <header>
-                <div>
-                    <h1 id="greeting">Yükleniyor...</h1>
-                    <p id="date-display"></p>
-                </div>
-                <div>
-                    <!-- Bildirim İzni Butonu -->
-                    <button class="btn-action" id="notif-btn" onclick="requestNotificationPermission()">
-                        <i data-lucide="bell" size="14"></i> Bildirimleri Aç
-                    </button>
-                </div>
-            </header>
-
-            <div class="dashboard-grid">
-                
-                <!-- 1. Saat ve Bilgi Modülü -->
-                <div class="glass-panel">
-                    <div class="panel-header">
-                        <div class="panel-title"><i data-lucide="clock" size="16"></i> Sistem Zamanı</div>
-                    </div>
-                    <div id="clock">00:00</div>
-                    <div style="display: flex; gap: 15px; margin-top: 15px;">
-                        <span style="font-size: 0.8rem; color: var(--success); display: flex; align-items: center; gap: 5px;">
-                            <span style="width:8px; height:8px; background:var(--success); border-radius:50%; box-shadow: 0 0 10px var(--success);"></span> Online
-                        </span>
-                        <span style="font-size: 0.8rem; color: var(--text-muted);"><i data-lucide="cpu" size="12" style="display:inline; margin-right:3px;"></i> %12 CPU</span>
-                    </div>
-                </div>
-
-                <!-- 2. Kısayollar Modülü (Yeni) -->
-                <div class="glass-panel" style="grid-row: span 1;">
-                    <div class="panel-header">
-                        <div class="panel-title"><i data-lucide="compass" size="16"></i> Hızlı Erişim</div>
-                        <button class="btn-icon" onclick="addShortcut()"><i data-lucide="plus" size="18"></i></button>
-                    </div>
-                    <div class="shortcuts-grid" id="shortcuts-container">
-                        <!-- Kısayollar Buraya JS ile Gelecek -->
-                    </div>
-                </div>
-
-                <!-- 3. Görevler Modülü -->
-                <div class="glass-panel" style="grid-row: span 2;">
-                    <div class="panel-header">
-                        <div class="panel-title"><i data-lucide="check-square" size="16"></i> Odak Görevleri</div>
-                        <button class="btn-action" onclick="addTask()"><i data-lucide="plus" size="14"></i> Ekle</button>
-                    </div>
-                    <div class="task-list" id="task-list"></div>
-                </div>
-
-                <!-- 4. Gmail Canlı Akış -->
-                <div class="glass-panel" style="grid-row: span 2;">
-                    <div class="panel-header">
-                        <div class="panel-title"><i data-lucide="inbox" size="16"></i> Gelen Kutusu</div>
-                        <div class="badge" id="mail-count">0</div>
-                    </div>
-                    
-                    <div id="gmail-auth-area" style="text-align: center; padding: 2rem 0;">
-                        <i data-lucide="mail-warning" size="32" style="color:var(--text-muted); margin-bottom:1rem;"></i>
-                        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">Mailleri ve masaüstü bildirimlerini görmek için bağlanın.</p>
-                        <button class="btn-action" style="margin: 0 auto;" onclick="handleAuthClick()">Google ile Bağlan</button>
-                    </div>
-
-                    <div class="email-list" id="email-list" style="display:none;"></div>
-                </div>
-
-                <!-- 5. Hızlı Notlar -->
-                <div class="glass-panel" style="grid-column: 1 / -1;">
-                    <div class="panel-header" style="margin-bottom: 1rem;">
-                        <div class="panel-title"><i data-lucide="edit-3" size="16"></i> Zihin Defteri</div>
-                    </div>
-                    <textarea id="quick-notes" placeholder="Aklındaki fikirleri kaybolmadan buraya yaz..."></textarea>
-                    <div id="save-hint" class="save-indicator"><i data-lucide="check" size="12" style="display:inline; margin-right:3px;"></i>Senkronize edildi</div>
-                </div>
-
-            </div>
-        </main>
+    <!-- Dock / Taskbar -->
+    <div id="taskbar">
+        <div class="dock-item" onclick="openCreator()" title="Yeni Pencere Ekle">
+            <i data-lucide="plus-circle"></i>
+        </div>
+        <div style="width:1px; height:35px; background:rgba(255,255,255,0.1); margin: 0 5px;"></div>
+        <div class="dock-item" onclick="changeBgOffset(1)" title="Arkaplan Değiştir">
+            <i data-lucide="monitor"></i>
+        </div>
+        <div class="dock-item" onclick="resetSystem()" title="Sistemi Sıfırla">
+            <i data-lucide="zap"></i>
+        </div>
     </div>
 
-    <!-- Google APIs -->
-    <script src="https://accounts.google.com/gsi/client" onload="initGSI()" async defer></script>
-    <script src="https://apis.google.com/js/api.js" onload="initGAPI()" async defer></script>
+    <!-- Modal: Pencere Oluşturucu -->
+    <div class="overlay" id="creator-modal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 25px; font-family: 'Space Grotesk'; letter-spacing: -1px;">Modül Entegrasyonu</h2>
+            
+            <label style="font-size: 0.65rem; opacity: 0.5; font-weight: 800; letter-spacing: 1px;">PENCERE İSMİ</label>
+            <input type="text" id="new-title" placeholder="Örn: Çalışma Alanı">
+            
+            <label style="font-size: 0.65rem; opacity: 0.5; font-weight: 800; letter-spacing: 1px;">İÇERİK MODELİ</label>
+            <select id="new-type">
+                <option value="html">Kod / Zengin Metin (HTML)</option>
+                <option value="url">Harici Web Sayfası (URL)</option>
+            </select>
+
+            <label style="font-size: 0.65rem; opacity: 0.5; font-weight: 800; letter-spacing: 1px;">İÇERİK KAYNAĞI</label>
+            <textarea id="new-content" rows="4" placeholder="Metin girin veya https:// ile başlayan bir link..."></textarea>
+
+            <div style="display:flex; gap:12px; margin-top:15px;">
+                <button class="btn-action" style="flex:1; justify-content:center;" onclick="closeCreator()">VAZGEÇ</button>
+                <button class="btn-action" style="flex:1; justify-content:center; background:var(--accent); color:#000;" onclick="createNewModule()">SİSTEME EKLE</button>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // İkonları Yükle
-        lucide.createIcons();
+        // --- 1. Uygulama Durumu (State) ---
+        let modules = JSON.parse(localStorage.getItem('nyx_os_v2_modules')) || [
+            { id: 'clock', title: 'Sistem Zamanı', type: 'widget', x: 60, y: 60, w: 340, h: 200, active: true, zIndex: 10 },
+            { id: 'welcome', title: 'Nyx Labs OS 4.0', type: 'html', content: '<div style="padding:25px;"><h3 style="color:var(--accent);">Sistem Hazır.</h3><p style="margin-top:15px; opacity:0.8; font-size:0.95rem; line-height:1.6;">Nyx Labs WebOS Ultimate sürümüne hoş geldiniz. Glassmorphism arayüzü ile masaüstünüzü tamamen kişiselleştirebilirsiniz.<br><br>Alt barı kullanarak yeni web uygulamaları veya not alanları eklemeye başlayın.</p></div>', x: 440, y: 60, w: 400, h: 280, active: true, zIndex: 10 }
+        ];
+        
+        let bgIndex = parseInt(localStorage.getItem('nyx_os_v2_bg')) || 1;
+        const save = () => localStorage.setItem('nyx_os_v2_modules', JSON.stringify(modules));
 
-        // ==========================================
-        // 1. ARKA PLAN SİSTEMİ (1.webp - 12.webp)
-        // ==========================================
-        const totalBgs = 12;
-        // LocalStorage'dan son arka planı al, yoksa 1 yap
-        let currentBgIndex = parseInt(localStorage.getItem('nyx_bg_index')) || 1;
+        // --- 2. Arayüz Yönetimi ---
+        function renderWorkspace() {
+            const ws = document.getElementById('workspace');
+            ws.innerHTML = '';
 
-        function applyBackground() {
-            const bgLayer = document.getElementById('bg-layer');
-            bgLayer.style.backgroundImage = `url('${currentBgIndex}.webp')`;
-            document.getElementById('bg-indicator').innerText = `(${currentBgIndex}/${totalBgs})`;
-            // Seçimi kaybetmemek için LocalStorage'a yaz
-            localStorage.setItem('nyx_bg_index', currentBgIndex);
-        }
+            modules.forEach(mod => {
+                if(!mod.active) return;
+                
+                const panel = document.createElement('div');
+                panel.className = 'glass-panel';
+                panel.id = `mod-${mod.id}`;
+                panel.style.width = mod.w + 'px';
+                panel.style.height = mod.h + 'px';
+                panel.style.transform = `translate(${mod.x}px, ${mod.y}px)`;
+                panel.style.zIndex = mod.zIndex || 10;
 
-        function nextBg() {
-            currentBgIndex = currentBgIndex >= totalBgs ? 1 : currentBgIndex + 1;
-            applyBackground();
-        }
-
-        function prevBg() {
-            currentBgIndex = currentBgIndex <= 1 ? totalBgs : currentBgIndex - 1;
-            applyBackground();
-        }
-
-        function randomBg() {
-            let newBg;
-            do { newBg = Math.floor(Math.random() * totalBgs) + 1; } while (newBg === currentBgIndex);
-            currentBgIndex = newBg;
-            applyBackground();
-        }
-        // Sayfa yüklendiğinde uygula
-        applyBackground();
-
-
-        // ==========================================
-        // 2. KISAYOLLAR SİSTEMİ (Data Persistence)
-        // ==========================================
-        let shortcuts = JSON.parse(localStorage.getItem('nyx_shortcuts'));
-        // Eğer daha önce hiç girilmemişse (ilk açılış), varsayılanları yükle
-        if (!shortcuts) {
-            shortcuts = [
-                { id: 1, name: 'GitHub', url: 'https://github.com' },
-                { id: 2, name: 'YouTube', url: 'https://youtube.com' },
-                { id: 3, name: 'ChatGPT', url: 'https://chat.openai.com' }
-            ];
-            localStorage.setItem('nyx_shortcuts', JSON.stringify(shortcuts));
-        }
-
-        function getFavicon(url) {
-            // Google'ın favicon yakalayıcısını kullanarak otomatik ikon çekme
-            return `https://www.google.com/s2/favicons?domain=${url}&sz=64`;
-        }
-
-        function renderShortcuts() {
-            const container = document.getElementById('shortcuts-container');
-            container.innerHTML = '';
-            shortcuts.forEach(s => {
-                const el = document.createElement('a');
-                el.href = s.url;
-                el.target = "_blank";
-                el.className = 'shortcut-item';
-                el.innerHTML = `
-                    <button class="delete-shortcut" onclick="event.preventDefault(); deleteShortcut(${s.id})"><i data-lucide="x" size="12"></i></button>
-                    <img src="${getFavicon(s.url)}" alt="${s.name}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2948/2948062.png'">
-                    <span class="shortcut-name">${s.name}</span>
+                panel.innerHTML = `
+                    <div class="panel-header" onmousedown="focusWindow('${mod.id}')">
+                        <div class="panel-title"><i data-lucide="terminal" style="width:14px"></i> ${mod.title}</div>
+                        <div class="panel-controls">
+                            <div class="control-dot dot-close" onclick="closeModule('${mod.id}')"></div>
+                        </div>
+                    </div>
+                    <div class="scroll-content" id="content-${mod.id}">
+                        ${getContent(mod)}
+                    </div>
                 `;
-                container.appendChild(el);
+                ws.appendChild(panel);
             });
-            lucide.createIcons();
-            localStorage.setItem('nyx_shortcuts', JSON.stringify(shortcuts));
-        }
-
-        window.addShortcut = () => {
-            const url = prompt("Site URL'sini girin (örn: https://netflix.com):");
-            if (!url) return;
-            const name = prompt("Kısayol Adı:");
-            if (!name) return;
             
-            // Eğer url http içermiyorsa ekle
-            let finalUrl = url.startsWith('http') ? url : 'https://' + url;
-            shortcuts.push({ id: Date.now(), name: name, url: finalUrl });
-            renderShortcuts();
-        }
-
-        window.deleteShortcut = (id) => {
-            shortcuts = shortcuts.filter(s => s.id !== id);
-            renderShortcuts();
-        }
-
-
-        // ==========================================
-        // 3. GÖREVLER SİSTEMİ (Data Persistence)
-        // ==========================================
-        let tasks = JSON.parse(localStorage.getItem('nyx_tasks'));
-        if (!tasks) {
-            tasks = [
-                { id: 1, text: "Sistemi test et", done: true },
-                { id: 2, text: "Kendi arka planlarını yükle (1.webp)", done: false }
-            ];
-            localStorage.setItem('nyx_tasks', JSON.stringify(tasks));
-        }
-
-        function renderTasks() {
-            const list = document.getElementById('task-list');
-            list.innerHTML = '';
-            tasks.forEach(t => {
-                const item = document.createElement('div');
-                item.className = 'task-item';
-                item.innerHTML = `
-                    <div class="check ${t.done ? 'done' : ''}" onclick="toggleTask(${t.id})"></div>
-                    <span class="task-text ${t.done ? 'done' : ''}">${t.text}</span>
-                    <button class="btn-icon" onclick="deleteTask(${t.id})"><i data-lucide="trash-2" size="16"></i></button>
-                `;
-                list.appendChild(item);
-            });
             lucide.createIcons();
-            localStorage.setItem('nyx_tasks', JSON.stringify(tasks));
+            setupInteractions();
         }
 
-        window.toggleTask = (id) => {
-            tasks = tasks.map(t => t.id === id ? {...t, done: !t.done} : t);
-            renderTasks();
-            const toggledTask = tasks.find(t => t.id === id);
-            if (toggledTask && toggledTask.done) notify("Görev Tamamlandı", "Bir adımı daha bitirdin!");
+        function getContent(mod) {
+            if(mod.id === 'clock') return `<div class="widget-clock"><div id="clock-val" class="clock-time">00:00</div><div id="date-val" class="clock-date">Yükleniyor...</div></div>`;
+            if(mod.type === 'url') return `<iframe src="${mod.content}" allow="fullscreen"></iframe>`;
+            return mod.content || '';
         }
 
-        window.deleteTask = (id) => {
-            tasks = tasks.filter(t => t.id !== id);
-            renderTasks();
+        // --- 3. Pencere Etkileşimleri ---
+        function setupInteractions() {
+            interact('.glass-panel').draggable({
+                allowFrom: '.panel-header',
+                listeners: {
+                    move(event) {
+                        const target = event.target;
+                        const id = target.id.replace('mod-', '');
+                        const mod = modules.find(m => m.id === id);
+                        mod.x += event.dx;
+                        mod.y += event.dy;
+                        target.style.transform = `translate(${mod.x}px, ${mod.y}px)`;
+                    },
+                    end() { save(); }
+                }
+            }).resizable({
+                edges: { left: true, right: true, bottom: true, top: true },
+                listeners: {
+                    move(event) {
+                        const target = event.target;
+                        const id = target.id.replace('mod-', '');
+                        const mod = modules.find(m => m.id === id);
+                        mod.w = event.rect.width;
+                        mod.h = event.rect.height;
+                        mod.x += event.deltaRect.left;
+                        mod.y += event.deltaRect.top;
+                        target.style.width = mod.w + 'px';
+                        target.style.height = mod.h + 'px';
+                        target.style.transform = `translate(${mod.x}px, ${mod.y}px)`;
+                    },
+                    end() { save(); }
+                }
+            });
         }
 
-        window.addTask = () => {
-            const text = prompt("Yeni görev:");
-            if (text) {
-                tasks.push({ id: Date.now(), text: text, done: false });
-                renderTasks();
+        function focusWindow(id) {
+            // Tüm panellerden odak sınıfını kaldır
+            document.querySelectorAll('.glass-panel').forEach(p => p.classList.remove('focused'));
+            
+            const maxZ = Math.max(...modules.map(m => m.zIndex || 10), 10);
+            const mod = modules.find(m => m.id === id);
+            mod.zIndex = maxZ + 1;
+            
+            const el = document.getElementById(`mod-${id}`);
+            if (el) {
+                el.style.zIndex = mod.zIndex;
+                el.classList.add('focused');
             }
         }
 
-
-        // ==========================================
-        // 4. NOTLAR SİSTEMİ (Data Persistence)
-        // ==========================================
-        const notesArea = document.getElementById('quick-notes');
-        const saveHint = document.getElementById('save-hint');
-        let typingTimer;
-
-        // Sayfa açıldığında kayıtlı notu yükle
-        notesArea.value = localStorage.getItem('nyx_notes') || '';
-
-        notesArea.addEventListener('input', () => {
-            clearTimeout(typingTimer);
-            saveHint.style.opacity = '0';
-            typingTimer = setTimeout(() => {
-                localStorage.setItem('nyx_notes', notesArea.value);
-                saveHint.style.opacity = '1';
-                setTimeout(() => saveHint.style.opacity = '0', 2000);
-            }, 800); // 800ms yazmayı bırakınca kaydet
-        });
-
-
-        // ==========================================
-        // 5. GMAIL & BİLDİRİM SİSTEMİ
-        // ==========================================
-        const CLIENT_ID = '416035792935-ak4sjm4oep7mfotagteullgcpdh0j1r8.apps.googleusercontent.com'; 
-        const API_KEY = ''; // Hala API Key gerekiyor (Google Cloud Console'dan alınmalı)
-        const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest';
-        const SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
-
-        let tokenClient;
-        let gapiInited = false;
-        let lastKnownMailIds = new Set();
-
-        // Bildirim İzni Kontrolü
-        function checkNotificationPermission() {
-            const btn = document.getElementById('notif-btn');
-            if (Notification.permission === "granted") {
-                btn.style.display = 'none';
-            }
+        function closeModule(id) {
+            modules = modules.filter(m => m.id !== id);
+            save();
+            renderWorkspace();
         }
 
-        window.requestNotificationPermission = async () => {
-            if (!("Notification" in window)) return alert("Tarayıcınız bildirimleri desteklemiyor.");
-            const perm = await Notification.requestPermission();
-            if (perm === "granted") {
-                notify("Nyx Labs", "Bildirimler aktif edildi!");
-                document.getElementById('notif-btn').style.display = 'none';
-            }
-        };
+        // --- 4. Modül Oluşturma ---
+        function openCreator() { document.getElementById('creator-modal').classList.add('open'); }
+        function closeCreator() { document.getElementById('creator-modal').classList.remove('open'); }
 
-        function notify(title, body) {
-            if (Notification.permission === "granted") {
-                new Notification(title, { body: body, icon: "https://cdn-icons-png.flaticon.com/512/1182/1182769.png" });
-            }
-        }
+        function createNewModule() {
+            const title = document.getElementById('new-title').value || 'Pencere';
+            const type = document.getElementById('new-type').value;
+            const content = document.getElementById('new-content').value;
 
-        // Google API Init
-        function initGAPI() { 
-            gapi.load('client', async () => { 
-                if (API_KEY) { await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] }); gapiInited = true; } 
-            }); 
-        }
-        function initGSI() { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: '' }); }
+            if(!content) return;
 
-        window.handleAuthClick = async () => {
-            if (!tokenClient) return alert("Sistem henüz hazır değil, lütfen bekleyin.");
-            tokenClient.callback = async (resp) => {
-                if (resp.error) return;
-                document.getElementById('gmail-auth-area').style.display = 'none';
-                document.getElementById('email-list').style.display = 'flex';
-                await updateGmail();
-                setInterval(updateGmail, 60000); // Dakikada bir kontrol
+            const newMod = {
+                id: 'custom-' + Date.now(),
+                title,
+                type,
+                content,
+                x: 150 + (modules.length * 25),
+                y: 150 + (modules.length * 25),
+                w: 450,
+                h: 350,
+                active: true,
+                zIndex: 100
             };
-            tokenClient.requestAccessToken({prompt: 'consent'});
-        };
 
-        async function updateGmail() {
-            if (!gapiInited) return;
-            try {
-                const res = await gapi.client.gmail.users.messages.list({ userId: 'me', q: 'is:unread', maxResults: 4 });
-                const messages = res.result.messages || [];
-                const list = document.getElementById('email-list');
-                document.getElementById('mail-count').innerText = messages.length;
-
-                for (const msg of messages) {
-                    if (!lastKnownMailIds.has(msg.id)) {
-                        lastKnownMailIds.add(msg.id);
-                        const detail = await gapi.client.gmail.users.messages.get({ userId: 'me', id: msg.id });
-                        const from = detail.result.payload.headers.find(h => h.name === 'From').value;
-                        const subject = detail.result.payload.headers.find(h => h.name === 'Subject').value;
-                        notify(`Yeni Mail: ${from.split('<')[0]}`, subject);
-                    }
-                }
-
-                list.innerHTML = '';
-                if(messages.length === 0) {
-                    list.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--text-muted); font-size:0.85rem;">Harika! Okunmamış mailin yok.</div>';
-                    return;
-                }
-
-                const displayIds = Array.from(lastKnownMailIds).slice(-4).reverse();
-                for (const msgId of displayIds) {
-                    const d = await gapi.client.gmail.users.messages.get({ userId: 'me', id: msgId });
-                    const f = d.result.payload.headers.find(h => h.name === 'From').value;
-                    const s = d.result.payload.headers.find(h => h.name === 'Subject').value;
-                    list.innerHTML += `<div class="email-item"><span class="sender">${f.split('<')[0]}</span><span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${s}</span></div>`;
-                }
-            } catch (e) { console.error("Gmail Error:", e); }
+            modules.push(newMod);
+            save();
+            renderWorkspace();
+            closeCreator();
+            
+            document.getElementById('new-title').value = '';
+            document.getElementById('new-content').value = '';
         }
 
+        // --- 5. Görselleştirme ve Yardımcılar ---
+        function changeBgOffset(o) {
+            bgIndex = ((bgIndex + o - 1 + 15) % 15) + 1;
+            // Picsum üzerinden estetik doğa/teknoloji görselleri çekiyoruz
+            document.getElementById('bg-layer').style.backgroundImage = `url('https://picsum.photos/id/${bgIndex + 20}/1920/1080?blur=1')`;
+            localStorage.setItem('nyx_os_v2_bg', bgIndex);
+        }
 
-        // ==========================================
-        // 6. UI GÜNCELLEMELERİ (Saat & Karşılama)
-        // ==========================================
-        function updateClockUI() {
+        function resetSystem() {
+            if(confirm('Tüm kişiselleştirmeler ve açık pencereler sıfırlanacak. Onaylıyor musunuz?')) {
+                localStorage.removeItem('nyx_os_v2_modules');
+                location.reload();
+            }
+        }
+
+        function updateTime() {
             const now = new Date();
-            document.getElementById('clock').innerText = now.toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'});
-            document.getElementById('date-display').innerText = now.toLocaleDateString('tr-TR', { weekday:'long', day:'numeric', month:'long'});
-            
-            const h = now.getHours();
-            let greetText = "İyi Geceler";
-            if(h >= 6 && h < 12) greetText = "Günaydın";
-            else if (h >= 12 && h < 18) greetText = "Tünaydın";
-            else if (h >= 18 && h < 23) greetText = "İyi Akşamlar";
-            
-            document.getElementById('greeting').innerText = `${greetText}, Patron.`;
+            const c = document.getElementById('clock-val');
+            const d = document.getElementById('date-val');
+            if(c) c.innerText = now.toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
+            if(d) d.innerText = now.toLocaleDateString('tr-TR', {day:'numeric', month:'long', year: 'numeric'});
+            setTimeout(updateTime, 1000);
         }
 
+        // --- 6. 3D Parçacık Arkaplan (Three.js) ---
+        function init3D() {
+            const container = document.getElementById('three-container');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
 
-        // Sayfa Hazır Olduğunda Çalıştırılacaklar
-        setInterval(updateClockUI, 1000);
-        updateClockUI();
-        renderShortcuts();
-        renderTasks();
-        checkNotificationPermission();
+            const stars = new THREE.Group();
+            scene.add(stars);
 
+            const geometry = new THREE.BufferGeometry();
+            const starPoints = [];
+            for(let i=0; i<1500; i++) {
+                starPoints.push((Math.random()-0.5)*50, (Math.random()-0.5)*50, (Math.random()-0.5)*50);
+            }
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(starPoints, 3));
+            
+            const material = new THREE.PointsMaterial({ color: 0x00ffcc, size: 0.05, transparent: true, opacity: 0.4 });
+            const points = new THREE.Points(geometry, material);
+            stars.add(points);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            camera.position.z = 15;
+
+            function animate() {
+                requestAnimationFrame(animate);
+                stars.rotation.y += 0.0005;
+                stars.rotation.x += 0.0002;
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        window.onload = () => {
+            changeBgOffset(0); 
+            renderWorkspace();
+            init3D();
+            updateTime();
+        };
     </script>
 </body>
 </html>
